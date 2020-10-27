@@ -41,18 +41,18 @@ class BaseReIDModel(nn.Module):
         if fixcnn:
             feats_map = feats_map.detach()
         # pooling
-        if self.feat_mode == "pooling":
-            feats_vec = self.pooling(feats_map).squeeze(3).squeeze(2)
-        elif self.feat_mode == "similarity":
-            feats_vec = self.self_similarity(
-                feats_map, norm_type=self.norm_type, order=self.order
-            )
-        else:
+        if self.feat_mode == "concat":
             feats_vec = self.pooling(feats_map).squeeze(3).squeeze(2)
             feats_vec2 = self.self_similarity(
                 feats_map, norm_type=self.norm_type, order=self.order
             )
             feats_vec = torch.cat((feats_vec, feats_vec2), dim=-1)
+        elif self.feat_mode == "pooling":
+            feats_vec = self.pooling(feats_map).squeeze(3).squeeze(2)
+        else:
+            feats_vec = self.self_similarity(
+                feats_map, norm_type=self.norm_type, order=self.order
+            )
 
         # teacher mode
         if teacher_mode:
