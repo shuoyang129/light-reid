@@ -32,11 +32,28 @@ parser.add_argument(
     default=False,
     help="lightfeat should be True if lightsearch is True",
 )
+
 parser.add_argument(
-    "--norm_type", type=str, default="softmax", help="should be one of softmax or l1"
+    "--feat_mode",
+    type=str,
+    default="pooling",
+    help="should be in ['pooling','similarity', 'concat']",
 )
+parser.add_argument(
+    "--norm_type", type=str, default="softmax", help="should be in ['softmax', 'l1']"
+)
+parser.add_argument("--order", type=int, default=1, help="similarity order")
 args = parser.parse_args()
 
+assert args.feat_mode in [
+    "pooling",
+    "similarity",
+    "concat",
+], "feat_mode must be in ['pooling','similarity', 'concat']"
+assert args.norm_type in [
+    "l1",
+    "softmax",
+], "norm_type of BaseReIDModel must be 'l1' or 'softmax'"
 # build dataset
 DUKE_PATH = "/home/Monday/datasets/DukeMTMC-reID"
 datamanager = lightreid.data.DataManager(
@@ -56,10 +73,17 @@ datamanager = lightreid.data.DataManager(
 # build model
 backbone = lightreid.models.backbones.resnet50(pretrained=True, last_stride_one=True)
 pooling = nn.AdaptiveAvgPool2d(1)
-head = lightreid.models.BNHead(
-    in_dim=128 + backbone.dim, class_num=datamanager.class_num
-)
-# head = lightreid.models.BNHead(in_dim=backbone.dim, class_num=datamanager.class_num)
+
+
+if args.feat_mode == "concat":
+    head = lightreid.models.BNHead(
+        in_dim=128 + backbone.dim, class_num=datamanager.class_num
+    )
+elif args.feat_mode == "pooling":
+    head = lightreid.models.BNHead(in_dim=backbone.dim, class_num=datamanager.class_num)
+else:
+    head = lightreid.models.BNHead(in_dim=128, class_num=datamanager.class_num)
+
 model = lightreid.models.BaseReIDModel(
     backbone=backbone, pooling=pooling, head=head, norm_type=args.norm_type
 )
@@ -107,6 +131,7 @@ solver = lightreid.engine.Engine(
 solver.train(eval_freq=10)
 # test
 solver.resume_latest_model()
-solver.smart_eval(onebyone=True, mode="normal")
+solver.eval(onebyone=True, mode="normal")
+# solver.smart_eval(onebyone=True, mode="normal")
 # visualize
 # solver.visualize()
