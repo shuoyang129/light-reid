@@ -40,7 +40,7 @@ parser.add_argument(
     help="should be in ['pooling','similarity', 'concat']",
 )
 parser.add_argument(
-    "--norm_type", type=str, default="softmax", help="should be in ['softmax', 'l1']"
+    "--norm_type", type=str, default="softmax", help="should be in ['softmax', 'l2']"
 )
 parser.add_argument("--order", type=int, default=1, help="similarity order")
 args = parser.parse_args()
@@ -51,9 +51,9 @@ assert args.feat_mode in [
     "concat",
 ], "feat_mode must be in ['pooling','similarity', 'concat']"
 assert args.norm_type in [
-    "l1",
+    "l2",
     "softmax",
-], "norm_type of BaseReIDModel must be 'l1' or 'softmax'"
+], "norm_type of BaseReIDModel must be 'l2' or 'softmax'"
 # build dataset
 DUKE_PATH = "/home/Monday/datasets/DukeMTMC-reID"
 datamanager = lightreid.data.DataManager(
@@ -85,8 +85,8 @@ else:
     head = lightreid.models.BNHead(in_dim=128, class_num=datamanager.class_num)
 
 model = lightreid.models.BaseReIDModel(
-    backbone=backbone, pooling=pooling, head=head, norm_type=args.norm_type
-)
+    backbone=backbone, pooling=pooling, head=head, feat_mode=args.feat_mode,
+    norm_type=args.norm_type, order=args.order)
 
 # build loss
 criterion = lightreid.losses.Criterion(
@@ -131,7 +131,7 @@ solver = lightreid.engine.Engine(
 solver.train(eval_freq=10)
 # test
 solver.resume_latest_model()
-solver.eval(onebyone=True, mode="normal")
+solver.eval(onebyone=True)
 # solver.smart_eval(onebyone=True, mode="normal")
 # visualize
 # solver.visualize()

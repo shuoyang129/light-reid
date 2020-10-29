@@ -18,7 +18,7 @@ class BaseReIDModel(nn.Module):
         self, backbone, pooling, head, feat_mode="pooling", norm_type="softmax", order=1
     ):
         # mode should be in ["pooling", "similarity", "concat"]
-        # norm_type: l1 or softmax
+        # norm_type: l2 or softmax
         super(BaseReIDModel, self).__init__()
         self.backbone = backbone
         self.pooling = pooling
@@ -87,11 +87,11 @@ class BaseReIDModel(nn.Module):
         self.use_tanh = False
 
     def self_similarity(self, featuremaps, norm_type="softmax", order=1):
-        # norm_type: l1 or softmax
+        # norm_type: l2 or softmax
         assert norm_type in [
-            "l1",
+            "l2",
             "softmax",
-        ], "norm_type of BaseReIDModel should be 'l1' or 'softmax'"
+        ], "norm_type of BaseReIDModel should be 'l2' or 'softmax'"
         b, d, h, w = featuremaps.shape
         # print("featuremaps shape:", featuremaps.shape, "==>", (b, d, h, w))
         kernels = featuremaps.permute([0, 2, 3, 1])  # [b, h, w, d]
@@ -104,26 +104,30 @@ class BaseReIDModel(nn.Module):
             kernel = kernel.reshape(d, -1)  # [hw, d, 1, 1]
             similarity = torch.matmul(featuremap, kernel)  # [hw, hw]
             # print("similarity shape: ", similarity.shape)
-            if norm_type == "l1":
-                similarity = similarity / torch.norm(similarity, p=1, dim=-1).expand(
-                    similarity.size()[1], similarity.size()[0]
-                ).transpose(0, 1)
-            elif norm_type == "softmax":
-                similarity = nn.functional.softmax(similarity, dim=-1)
+            # if norm_type == "l2":
+            #     similarity = similarity / torch.norm(similarity, p=2, dim=-1).expand(
+            #         similarity.size()[1], similarity.size()[0]
+            #     ).transpose(0, 1)
+            # elif norm_type == "softmax":
+            #     similarity = nn.functional.softmax(similarity, dim=-1)
             # similarity = similarity/torch.norm(similarity)
             # similarity = F.softmax(similarity)
             # print(similarity.sum(-1))
             if order > 1:
                 for i in range(1, order):
-                    similarity = torch.matmal(similarity, similarity.transpose(0, 1))
-                    if norm_type == "l1":
-                        similarity = similarity / torch.norm(
-                            similarity, p=1, dim=-1
-                        ).expand(similarity.size()[1], similarity.size()[0]).transpose(
-                            0, 1
-                        )
-                    elif norm_type == "softmax":
-                        similarity = nn.functional.softmax(similarity, dim=-1)
+                    similarity = torch.matmul(similarity, similarity.transpose(0, 1))
+                    # if norm_type == "l2":
+                    #     similarity = similarity / torch.norm(
+                    #         similarity, p=2, dim=-1
+                    #     ).expand(similarity.size()[1], similarity.size()[0]).transpose(
+                    #         0, 1
+                    #     )
+                    # elif norm_type == "softmax":
+                    #     similarity = nn.functional.softmax(similarity, dim=-1)
+            if norm_type == "l2":
+                similarity = similarity / torch.norm(similarity, p=2, dim=-1).expand(similarity.size()[1], similarity.size()[0]).transpose(0, 1)
+            elif norm_type == "softmax":
+                similarity = nn.functional.softmax(similarity, dim=-1)
             similarity = similarity.view(1, h * w, h * w)
             # print("similarity shape: ", similarity.shape)
             # similarity = torch.cat(
