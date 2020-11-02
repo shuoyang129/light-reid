@@ -418,7 +418,7 @@ class Engine(object):
                         gallery_feats,
                         gallery_camids,
                         gallery_pids,
-                        return_time=True,
+                        # return_time=True,
                     )
             elif isinstance(query_feats, list):  # eval with coarse2fine
                 mAP, CMC, ranktime, evaltime = CmcMapEvaluatorC2F(
@@ -430,7 +430,7 @@ class Engine(object):
                     gallery_feats,
                     gallery_camids,
                     gallery_pids,
-                    return_time=True,
+                    # return_time=True,
                 )
 
             # compute precision-recall curve
